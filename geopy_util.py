@@ -4,25 +4,56 @@ import os
 import sys
 from geopy.geocoders import GoogleV3
 from geopy.distance import vincenty
-from geopy.point import Point
 from math import sqrt, pow
 from random import randint
 from sys import stdout
 
-def is_in_area(begin, end, point):
-  
-  latitude = point[0]
-  longitude = point[1]
 
-  if end[0] < latitude < begin[0] and begin[1] < longitude < end[1]:
-    return True
+def get_list_of_x_coordinates(path_to_file):
+	x_coordinates = []
+	file = open(path_to_file)
+	points = file.readlines()
+	for point in points:
+		x_coordinates.append(float(point.split(',')[0]))
+	#print x_coordinates
+	return x_coordinates
 
-  return False
+def get_list_of_y_coordinates(path_to_file):
+	y_coordinates = []
+	file = open(path_to_file)
+	points = file.readlines()
+	for point in points:
+		y_coordinates.append(float(point.split(',')[1]))
+	#print y_coordinates
+	return y_coordinates
+
+def get_coordinates_of_area(geolife_folder):
+	#Get list of all users
+	userdirs = os.listdir(geolife_folder)
+	
+	x_coordinates = []
+	y_coordinates = []
+
+	for userdir in userdirs:
+		trajectories = os.listdir(os.path.join(geolife_folder, userdir))
+		for trajectory in trajectories:
+			x_coordinates.extend(get_list_of_x_coordinates(
+				os.path.join(geolife_folder, userdir, trajectory)))
+			y_coordinates.extend(get_list_of_y_coordinates(
+				os.path.join(geolife_folder, userdir, trajectory)))
+
+	x_coordinates.sort()
+	y_coordinates.sort()
+
+	#print x_coordinates
+	#print x_coordinates[-1]
+	#print y_coordinates
+	#print y_coordinates[-1]
 
 def create_bounding_box(box_length):
 	"""Given the coordinate of the center and the length of the box returns
 	two cordinates of the rectangle box (left_top, right_bottom)"""
-	
+
 	coordinate = GoogleV3().geocode("Beijing, Peking, China")[1]
 	d = vincenty()
 
@@ -52,10 +83,18 @@ def create_partinioned_bounding_box(box_length, partition_length):
 			partition_end = distance_calculator.destination(partition_start, 135, 
 				sqrt(2*pow(partition_length, 2)))
 			row_partitions.append((partition_start, partition_end))
+
+			
+			'''stdout.write('%f, %f\n' % (partition_start[0], partition_start[1]))
+			stdout.write('%f, %f\n' % (partition_end[0], partition_end[1]))
+			stdout.flush()'''
 		partitions.append(row_partitions)
+	"""for row in partitions:
+		for partition in row:
+			stdout.write('%f, %f\n' % (partition[0][0], partition[1][1]))"""
 	return partitions
 
-def create_grid(box_length, partition_length, file_name):
+def create_quadratic_grid(box_length, partition_length, file_name):
 	
 	"""Generate partitions and write them into the file"""
 	partitions = []
@@ -69,7 +108,7 @@ def create_grid(box_length, partition_length, file_name):
 			partition_id = None
 
 			while True:
-				partition_id = randint(0, pow(2, 24))
+				partition_id = randint(0, pow(2, 32))
 				if not partition_id in partition_ids:
 					break
 			partitions.append((partition[0], partition[1], partition_id))
@@ -93,7 +132,7 @@ def create_grid(box_length, partition_length, file_name):
 	partitions_file.flush()
 	partitions_file.close()
 
-def load_grid(partitions_file_path):
+def load_quadratic_partition(partitions_file_path):
 	"""Load the partition definitions from file"""
 
 	partitions_file = open(partitions_file_path)
@@ -124,66 +163,9 @@ def load_grid(partitions_file_path):
 				partition_row.append((start, end, id))
 			else:
 				return None
-		partitions.append(partition_row)
+		paritions.append(partition_row)
 	return partitions
 
-def find_partition_to_point(partitions, point):
-	"""Get the partition of a given coordinate"""
-
-	partition_found = False
-	partition_row_index = 0
-	partition_column_index = 0
-	partition_id = 0
-
-	for row_index in range(len(partitions)):
-		partition_row = partitions[row_index]
-		partition_row_start = partition_row[0][0]
-		partition_row_end = partition_row[-1][1]
-
-		if is_in_area(partition_row_start, 
-					  partition_row_end,
-					  point):
-			for column_index in range(len(partition_row)):
-				partition = partition_row[column_index]
-				partition_start = partition[0]
-				partition_end = partition[1]
-				if is_in_area(partition_start, partition_end, point):
-					partition_found = True
-					partition_row_index = row_index
-					partition_column_index = column_index
-					partition_id = partition[2]
-					break
-		if partition_found:
-			break
-	return partition_row_index, partition_column_index, partition_id
-
-def find_meetings_by_partition_on_day(geolife_folder, partitions, day, month=3, 
-									  interval=5, condition=2):
-	coordinates_in_region_by_time = {}
-	userdirs = os.listdir(geolife_folder)
-	
-	for userdir in userdirs:
-		user_day_file_name = os.path.join(geolife_folder, userdir, 
-								'2009-%02d-%02d.trajectories' % (month, day))
-		
-		if not os.path.isfile(user_day_file_name):
-			continue
-
-		user_day_file = open(user_day_file_name)
-		user_day_data = user_day_file.readlines()
-
-		for line in user_day_data:
-			data = line.split(',')
-			location = Point(float(data[0]), float(data[1]))
-			time = data[6].split(':')
-			hour = time[0]
-			minute = int(time[1]) - (int(time[1]) % interval)
-
-			timestamp = '%s:%02d' % (hour, minute)
-
-			if timestamp not in coordinates_in_region_by_time:
-				coordinates_in_region_by_time[timestamp] = []
-				#print 'hit!'
-			coordinates_in_region_by_time[timestamp].append(
-				(userdir, find_partition_to_point(partitions, location)))
-	return coordinates_in_region_by_time
+if __name__ == "__main__":
+	#create_partinioned_bounding_box(center_coordinate, 100, 20)
+	create_quadratic_grid(100, 20, './partitions/partitions.20.csv')
