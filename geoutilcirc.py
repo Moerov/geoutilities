@@ -156,9 +156,9 @@ def find_partition_to_point(partitions, point):
 		if partition_found:
 			break
 	if partition_found:
-		return partition_row_index, partition_column_index, partition_id
+		return partition_id
 	else:
-		return (-1,-1, -42)
+		return -42
 
 def find_meetings_by_partition_on_day(geolife_folder, partitions, day, month=3, 
 									  interval=5, condition=2):

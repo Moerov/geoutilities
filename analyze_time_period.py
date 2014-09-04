@@ -6,14 +6,19 @@ import geoutilities
 from math import sqrt, pi
 
 
-def is_enough_users(list_of_id, condition=2):
-	id_count = {}
-	for user in list_of_id:
-		if user[1][2] not in id_count:
-			id_count[user[1][2]] = 1
+def number_of_meetings(list_of_users, condition=2):
+	ids_frequency = {}
+	for user in list_of_users:
+		if(user[1] in ids_frequency):
+			ids_frequency[user[1]] += 1
 		else:
-			id_count[user[1][2]]+=1
-	
+			ids_frequency[user[1]] = 1
+	number_of_meetings = 0
+	for id, counter in ids_frequency.items():
+		if counter >= condition and id != -42:
+			number_of_meetings += 1
+	return number_of_meetings	
+
 
 def analyse_quad_grid(day):
 	import geoutilquad
@@ -23,13 +28,9 @@ def analyse_quad_grid(day):
 		'./geolife_data_1.3/filtered_by_week', partitions, day)
 	count = 0
 	for timestamp in time_meetings:
-		number_of_meetings = 0
-		users_timestamp = time_meetings[timestamp]
-		if len(meetings) > 1:
-			if is_enough_users(users_timestamp):
-				count+=1
+		#print timestamp, time_meetings[timestamp]
+		count += number_of_meetings(time_meetings[timestamp])
 	return count
-
 
 def analyse_circ_grid(day):
 	import geoutilcirc
@@ -43,46 +44,27 @@ def analyse_circ_grid(day):
 		'./geolife_data_1.3/filtered_by_week', partitions, day)
 	count = 0
 	for timestamp in time_meetings:
-		column = 1
-		for i, item in enumerate(time_meetings[timestamp]):
-			column*=item[1][0]
-		if(len(time_meetings[timestamp]) > 1 and column > 0):
-			count+=1
+		#print timestamp, time_meetings[timestamp]
+		count += number_of_meetings(time_meetings[timestamp])
 	return count
 
 def analyse_shifted_circ_grid(day):
 	import geoutilcirc2
+
 	#geoutilcirc2.create_grid(100, 11.2838, './partitions/partitions.circ.shifted.20.csv')
 	partitions = geoutilcirc2.load_grid('./partitions/partitions.circ.shifted.20.csv')
-
-	# geoutilcirc2.find_partition_to_point(partitions, (40.3, 116.50))
 
 	time_meetings = geoutilcirc2.find_meetings_by_partition_on_day(
 		'./geolife_data_1.3/filtered_by_week', partitions, day)
 	count = 0
 	for timestamp in time_meetings:
-		column = 1
-		for i, item in enumerate(time_meetings[timestamp]):
-			column*=item[1][0]
-		if(len(time_meetings[timestamp]) > 1 and column > 0):
-			count+=1
+		#print timestamp, time_meetings[timestamp]
+		count += number_of_meetings(time_meetings[timestamp])
 	return count
 
-def analyse_triangles(day):
-	import geoutiltriangl
-
-	vertices = [[1, 2], [7.5, 2], [7.5, 6]]
-	point = [5, 4]
-
-	geoutiltriangl.is_in_triangle(vertices, point)
-	geoutiltriangl.create_partitioned_bounding_box(100, 30.3934)
-
-	geoutiltriangl.create_grid(100, 30.3934, './partitions/partitions.triang.20.csv')
 
 def analyse_triangles2(day):
 	import geoutiltriangl2
-
-	
 	#geoutiltriangl2.create_grid(100, 30.3934, './partitions/partitions.triang2.20.csv')
 	partitions = geoutiltriangl2.load_grid('./partitions/partitions.triang2.20.csv')
 	
@@ -91,39 +73,36 @@ def analyse_triangles2(day):
 		'./geolife_data_1.3/filtered_by_week', partitions, day)
 	count = 0
 	for timestamp in time_meetings:
-		print timestamp, time_meetings[timestamp]
-		if(len(time_meetings[timestamp]) > 1):
-			count+=1
+		#print timestamp, time_meetings[timestamp]
+		count += number_of_meetings(time_meetings[timestamp])
 	return count
 
 
 def compare_shapes():
-	quad = 0
-	circ = 0
-	circ2 = 0
-	rect = 0
-	for i in range(8):
+	quad = circ = circ2 = rect = trian = 0
+	for i in range(1, 8):
 		quad += analyse_quad_grid(i)
 		circ += analyse_circ_grid(i)
 		circ2 += analyse_shifted_circ_grid(i)
 		rect += analyse_rect_grid(i)
-
-	print 'Grid of squares: ', quad 
+		trian += analyse_triangles2(i)
+	print 'Grid of squares: ', quad, '(100%)' 
 	print 'Grid of circles: ', circ, '(' + str(int(100*circ/quad))+'%)'
 	print 'Grid of shifted circles: ', circ2, '(' + str(int(100*circ2/quad))+'%)'
 	print 'Grid of rectangles: ', rect, '(' + str(int(100*rect/quad))+'%)'
+	print 'Grid of traingles: ', trian, '(' + str(int(100*trian/quad))+'%)'
 
 def analyse_rect_grid(day):
 	import geoutilrect
-	geoutilrect.create_grid(100, 50, 8, './partitions/partitions.rect.20.csv')
+	#geoutilrect.create_grid(100, 50, 8, './partitions/partitions.rect.20.csv')
 	partitions = geoutilrect.load_grid('./partitions/partitions.rect.20.csv')
 	time_meetings = geoutilrect.find_meetings_by_partition_on_day(
 		'./geolife_data_1.3/filtered_by_week', partitions, day)
 	count = 0
+	
 	for timestamp in time_meetings:
-		print timestamp, time_meetings[timestamp]
-		if(len(time_meetings[timestamp]) > 1):
-			count+=1
+		#print timestamp, time_meetings[timestamp]
+		count += number_of_meetings(time_meetings[timestamp])
 	return count
 
 def quad_to_other_shapes(partition_length):
@@ -135,5 +114,6 @@ def quad_to_other_shapes(partition_length):
 	return radius, rect_length, rect_width, trian_length
 
 if __name__ == "__main__":
-	#compare_shapes()
-	analyse_triangles2(2)
+	compare_shapes()
+	#analyse_circ_grid(7)
+	
