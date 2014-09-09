@@ -24,7 +24,7 @@ def is_in_triangle(vertices, point):
 		(p3[0] - p2[0])*(p1[1] - p3[1]))
 
 	gamma = 1 - alpha - beta
-	#print alpha, beta, gamma
+	
 	return (alpha > 0 and beta > 0 and gamma > 0)
 
 

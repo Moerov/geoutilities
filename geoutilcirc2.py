@@ -137,12 +137,37 @@ def load_grid(partitions_file_path):
 		partitions.append(partition_row)
 	return partitions
 
+def random_pattern_from_partition(partitions, partition_row, partition_column, pattern_size=1):
+	partition_pattern = [(partition_row, partition_column)]
+	partition_pattern_ids = []
+	for _ in xrange(0, pattern_size - 1):
+		while True:
+			move_row = randint(-1, 1)
+			move_column = randint(-1, 1)
+			move_index = randint(0, len(partition_pattern) - 1)
 
-def find_partition_to_point(partitions, point):
+			move_partition_indices = partition_pattern[move_index]
+			new_row = move_partition_indices[0] + move_row
+			new_column = move_partition_indices[1] + move_column
+			
+			if new_row < 0 or new_row >= len(partitions):
+				new_row = move_partition_indices[0]
+			if new_column < 0 or new_column >= len(partitions[0]):
+				new_column = move_partition_indices[1]
+			if (new_row, new_column) in partition_pattern:
+				continue
+			else:
+				partition_pattern.append((new_row, new_column))
+				break
+	for index in partition_pattern:
+		partition_pattern_ids.append(partitions[index[0]][index[1]][2])
+	return partition_pattern_ids
+
+def find_partition_to_point(partitions, point, pattern_size):
 	partition_found = False
-	partition_row_index = 0
-	partition_column_index = 0
-	partition_id = 0
+	partition_row_index = -1
+	partition_column_index = -1
+	partition_id = -42
 
 	for row_index in range(len(partitions)):
 		partitions_row = partitions[row_index]
@@ -150,23 +175,24 @@ def find_partition_to_point(partitions, point):
 		for column_index in range(len(partitions_row)):
 			center = partitions_row[column_index][0]
 			radius = partitions_row[column_index][1]
-			partition_id = partitions_row[column_index][2]
+			
 
 			if is_in_circle(center, radius, point):
 				partition_found = True
 				partition_row_index = row_index
 				partition_column_index = column_index
+				partition_id = partitions_row[column_index][2]
 				break
 		if partition_found:
-			break
-	if partition_found:
-		return partition_id
-	else:
-		return 42
+			return random_pattern_from_partition(partitions, 
+										partition_row_index,
+										partition_column_index,
+										pattern_size)
+	return partition_id
 
 
 
-def find_meetings_by_partition_on_day(geolife_folder, partitions, day, month=3, 
+def find_meetings_by_partition_on_day(geolife_folder, partitions, day, pattern_size=1, month=3, 
 									  interval=5, condition=2):
 	coordinates_in_region_by_time = {}
 	userdirs = os.listdir(geolife_folder)
@@ -194,5 +220,5 @@ def find_meetings_by_partition_on_day(geolife_folder, partitions, day, month=3,
 				coordinates_in_region_by_time[timestamp] = []
 				#print 'hit!'
 			coordinates_in_region_by_time[timestamp].append(
-				(userdir, find_partition_to_point(partitions, location)))
+				(userdir, find_partition_to_point(partitions, location, pattern_size)))
 	return coordinates_in_region_by_time
